@@ -1,0 +1,108 @@
+POWER BI — DAX MEASURES
+Paste these into a dedicated "_Measures" table (New Table > name it _Measures, no columns needed,
+just a home for measures) after importing PowerBI_Data_Model.xlsx.
+
+======================================================================
+GENERAL / EXECUTIVE
+======================================================================
+Total Postings =
+COUNTROWS ( fact_salaries )
+
+Avg Salary (USD) =
+AVERAGE ( fact_salaries[salary_in_usd] )
+
+Median Salary (USD) =
+MEDIAN ( fact_salaries[salary_in_usd] )
+
+Total Companies =
+DISTINCTCOUNT ( fact_analyst_jobs[company] )
+
+Total Cities =
+DISTINCTCOUNT ( fact_jobs_indeed[city] )
+
+======================================================================
+HIRING TRENDS / FORECAST
+======================================================================
+Postings (Selected Year) =
+CALCULATE ( [Total Postings], fact_salaries[work_year] = MAX ( fact_salaries[work_year] ) )
+
+Postings Prior Year =
+CALCULATE (
+    [Total Postings],
+    FILTER ( ALL ( fact_salaries ), fact_salaries[work_year] = MAX ( fact_salaries[work_year] ) - 1 )
+)
+
+YoY Posting Growth % =
+DIVIDE ( [Postings (Selected Year)] - [Postings Prior Year], [Postings Prior Year] )
+
+Avg Salary YoY Growth % =
+VAR CurYear = MAX ( fact_salaries[work_year] )
+VAR CurAvg = CALCULATE ( [Avg Salary (USD)], fact_salaries[work_year] = CurYear )
+VAR PrevAvg = CALCULATE ( [Avg Salary (USD)], FILTER ( ALL ( fact_salaries ), fact_salaries[work_year] = CurYear - 1 ) )
+RETURN DIVIDE ( CurAvg - PrevAvg, PrevAvg )
+
+Salary Trend Line (Forecast page) =
+-- Use Power BI's built-in Analytics pane > "Forecast" on a line chart of
+-- Avg Salary (USD) by work_year instead of a DAX measure — it uses
+-- exponential smoothing natively and needs no formula.
+
+======================================================================
+SALARY ANALYTICS
+======================================================================
+Avg Salary by Experience =
+AVERAGEX ( VALUES ( fact_salaries[experience_level] ), [Avg Salary (USD)] )
+
+Salary P25 =
+PERCENTILE.INC ( fact_salaries[salary_in_usd], 0.25 )
+
+Salary P75 =
+PERCENTILE.INC ( fact_salaries[salary_in_usd], 0.75 )
+
+Rating-Salary Correlation (Analyst jobs) =
+-- Power BI has no native CORREL; use a scatter plot (Rating x Avg Salary)
+-- with a trend line turned on in the visual's Analytics pane instead.
+
+======================================================================
+SKILL DEMAND
+======================================================================
+Skill Mentions =
+SUM ( dim_skill_salary[job_count] )
+
+Avg Salary by Skill ($K) =
+AVERAGE ( dim_skill_salary[avg_salary_k] )
+
+Top Co-occurring Pair Count =
+MAX ( dim_skill_cooccurrence[co_occurrences] )
+
+======================================================================
+REGIONAL ANALYSIS
+======================================================================
+Jobs in Selected City =
+CALCULATE ( SUM ( dim_city_jobs[job_count] ) )
+
+Avg Salary by Location =
+AVERAGE ( dim_location_salary[avg_salary] )
+
+======================================================================
+COMPANY ANALYSIS
+======================================================================
+Analyst Jobs by Company =
+SUM ( dim_top_analyst_companies[analyst_job_count] )
+
+Avg Salary by Company Size =
+AVERAGE ( dim_company_size_salary[avg_salary] )
+
+======================================================================
+AI SKILL DEMAND
+======================================================================
+Avg AI Workload Ratio =
+AVERAGE ( ai_impact_on_jobs[AI_Workload_Ratio] )
+
+High Automation Risk Jobs =
+CALCULATE ( COUNTROWS ( ai_job_market_insights ), ai_job_market_insights[Automation_Risk] = "High" )
+
+% Remote-Friendly (AI dataset) =
+DIVIDE (
+    CALCULATE ( COUNTROWS ( ai_job_market_insights ), ai_job_market_insights[Remote_Friendly] = "Yes" ),
+    COUNTROWS ( ai_job_market_insights )
+)
